@@ -1,0 +1,454 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Día especial — Ramo</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0b0b0f;
+    --gold-1:#ffd166;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%; margin:0; background:var(--bg); font-family:"Poppins",sans-serif; color:var(--gold-1); overflow:hidden;}
+
+  /* ---------- PANTALLA INICIO ---------- */
+  .inicio{
+    position:relative;
+    width:100%;
+    max-width:980px;
+    padding:28px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:8px;
+    text-align:center;
+    z-index:40;
+    transition:opacity .35s ease, transform .35s ease;
+  }
+  .inicio.fadeOut{ opacity:0; transform: translateY(-10px); pointer-events:none; }
+
+  h1,h2,h3,h4,p{ margin:6px; text-shadow:0 0 20px rgba(255,209,102,0.95); }
+  h1{ font-size:clamp(30px,9vw,84px); }
+  h2{ font-size:clamp(26px,7vw,72px); }
+  h3{ font-size:clamp(22px,6.2vw,64px); }
+  h4{ font-size:clamp(18px,5.2vw,46px); color:#ffcc99; }
+  /* mensaje principal más grande */
+  p {
+    font-size:clamp(18px,5vw,34px);
+    color:#e6e6e6;
+    font-weight:600;
+  }
+
+  .btn{
+    margin-top:18px;
+    padding:12px 28px;
+    border-radius:14px;
+    background:linear-gradient(90deg,var(--gold-1),#ff8c66);
+    color:#111;
+    font-weight:700;
+    text-decoration:none;
+    box-shadow:0 6px 30px rgba(255,180,90,0.18);
+    opacity:0; pointer-events:none;
+    transition:opacity .6s ease;
+  }
+  .btn.show{ opacity:1; pointer-events:auto; }
+
+  /* falling drops (inicio) */
+  .falling {
+    pointer-events:none;
+    position:absolute;
+    inset:0;
+    z-index:30;
+    overflow:hidden;
+  }
+  .drop{
+    position:absolute;
+    top:-8vh;
+    width:8px;
+    height:8px;
+    border-radius:50%;
+    background: radial-gradient(circle at 35% 30%, #fff9c4, #ffd54f 40%, rgba(255,200,0,0.85));
+    box-shadow:0 0 12px rgba(255,220,100,0.9), 0 0 24px rgba(255,200,0,0.55);
+    opacity:0;
+    transform: translateY(0) rotate(0);
+    animation: fall linear infinite;
+  }
+  @keyframes fall{
+    0%   { transform: translateY(-6vh) rotate(0deg); opacity:0; }
+    6%   { opacity:1; }
+    86%  { opacity:1; }
+    100% { transform: translateY(110vh) rotate(360deg); opacity:0; }
+  }
+
+  /* ---------- PANTALLA FLORES ---------- */
+  #flores{
+    position:fixed;
+    inset:0;
+    display:flex;
+    align-items:flex-end;
+    justify-content:center;
+    background:#000;
+    z-index:60;           /* más alto para evitar que algo lo tape */
+    pointer-events:none;
+    transform: translateY(30vh);
+    opacity:0;
+    visibility:hidden;
+  }
+  #flores.active{
+    visibility:visible;
+    pointer-events:all;
+    animation: flowersUp 900ms cubic-bezier(.22,.9,.28,1) forwards;
+  }
+  @keyframes flowersUp{
+    from{ transform: translateY(30vh); opacity:0; }
+    to  { transform: translateY(0); opacity:1; }
+  }
+
+  /* overlay para destellos sobre las flores */
+  .fallingFlores {
+    pointer-events: none;
+    position: absolute;
+    inset: 0;
+    z-index: 120; /* encima del SVG de flores */
+    overflow: hidden;
+  }
+  .fallingFlores .drop {
+    position: absolute;
+    top: -8vh;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #fff9c4, #ffd54f 40%, rgba(255,200,0,0.85));
+    box-shadow: 0 0 12px rgba(255,220,100,0.9), 0 0 24px rgba(255,200,0,0.55);
+    opacity: 0;
+    transform: translateY(0) rotate(0);
+    animation: fall linear infinite;
+  }
+
+  /* animación flores (stagger/entrada) */
+  svg .flower{ transform-origin:center bottom; opacity:0; transform: translateY(40px) scale(0.98); }
+  svg .flower.show { animation: flowerPop 600ms ease-out forwards; }
+  @keyframes flowerPop {
+    from { opacity:0; transform: translateY(40px) scale(0.98); }
+    to   { opacity:1; transform: translateY(0) scale(1); }
+  }
+
+  .sway{ animation: swayAnim 4s ease-in-out infinite; transform-origin:center bottom; }
+  @keyframes swayAnim {
+    0%{ transform: translateX(0) rotate(0deg); }
+    50%{ transform: translateX(2px) rotate(1.2deg); }
+    100%{ transform: translateX(0) rotate(0deg); }
+  }
+
+  /* mensaje sobre las flores */
+  .mensaje {
+    position:absolute;
+    top:28px;
+    z-index:130;
+    pointer-events:none;
+    color:#c999ff;
+    text-shadow:0 0 8px #c999ff;
+    font-size:clamp(18px,4.6vw,32px);
+    text-align:center;
+    line-height:1.45;
+    padding:0 20px;
+  }
+
+  @media (max-width:420px){
+    .btn{ font-size:16px; padding:10px 20px;}
+    .inicio{ padding:16px; }
+  }
+</style>
+</head>
+<body>
+
+  <!-- Pantalla inicial -->
+  <div class="inicio" id="inicio" role="region" aria-label="Pantalla inicial">
+    <div class="falling" id="falling" aria-hidden="true"></div>
+
+    <h1><span id="titulo1"></span></h1>
+    <h2><span id="titulo2"></span></h2>
+    <h3><span id="titulo3"></span></h3>
+    <h4><span id="subtitulo"></span></h4>
+    <p><span id="mensaje"></span></p>
+
+    <a href="#" id="boton" class="btn" aria-label="Presiona aquí">PRESIONA AQUÍ</a>
+  </div>
+
+  <!-- Pantalla flores -->
+  <div id="flores" aria-hidden="true" role="region" aria-label="Ramo de flores">
+    <div class="fallingFlores" id="fallingFlores" aria-hidden="true"></div>
+
+    <!-- Mensaje cambiado -->
+    <div class="mensaje" id="mensajeFlores">
+      Gracias por todo mi niña,<br>
+      tal vez no tuve dinero para comprarte unas esta vez,<br>
+      pero vi la manera de dártelas<br>
+      y que sepas que para ti soy tu amigo,<br>
+      pero para mí eres el amor para siempre 🤎🤎
+    </div>
+
+    <!-- ===== SVG RAMO DE 5 FLORES (INTEGRADO) ===== -->
+    <svg viewBox="0 0 360 800" preserveAspectRatio="xMidYMax slice" width="100%" height="100%" role="img" aria-label="Ramo de flores amarillas">
+      <defs>
+        <radialGradient id="petalGrad" cx="40%" cy="35%" r="60%">
+          <stop offset="0%" stop-color="#fff7b0"/>
+          <stop offset="45%" stop-color="#ffea3f"/>
+          <stop offset="100%" stop-color="#ffd400"/>
+        </radialGradient>
+
+        <radialGradient id="centerGrad" cx="35%" cy="35%" r="70%">
+          <stop offset="0%" stop-color="#ffd98a"/>
+          <stop offset="40%" stop-color="#b06a34"/>
+          <stop offset="100%" stop-color="#2e150a"/>
+        </radialGradient>
+
+        <linearGradient id="stemGrad" x1="0" x2="0" y1="0" y2="1">
+          <stop offset="0%" stop-color="#28ff77"/>
+          <stop offset="100%" stop-color="#06621b"/>
+        </linearGradient>
+
+        <linearGradient id="leafGrad" x1="0" x2="1" y1="0" y2="1">
+          <stop offset="0%" stop-color="#27e861"/>
+          <stop offset="100%" stop-color="#04621a"/>
+        </linearGradient>
+
+        <radialGradient id="sparkGrad" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stop-color="#fffef2" stop-opacity="1"/>
+          <stop offset="40%" stop-color="#fff08a" stop-opacity="0.95"/>
+          <stop offset="100%" stop-color="#ffd400" stop-opacity="0"/>
+        </radialGradient>
+
+        <filter id="glowFilter" x="-50%" y="-50%" width="200%" height="200%">
+          <feGaussianBlur stdDeviation="8" result="blur"/>
+          <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+
+        <filter id="glowSoft" x="-50%" y="-50%" width="200%" height="200%">
+          <feGaussianBlur stdDeviation="5" result="blur"/>
+          <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+      </defs>
+
+      <!-- fondo / follaje -->
+      <g transform="translate(0,660)" opacity="0.95" class="glow-soft">
+        <ellipse cx="180" cy="70" rx="140" ry="70" fill="url(#leafGrad)" opacity="0.12"/>
+        <ellipse cx="80" cy="100" rx="60" ry="30" fill="url(#leafGrad)" opacity="0.12"/>
+        <ellipse cx="280" cy="100" rx="60" ry="30" fill="url(#leafGrad)" opacity="0.12"/>
+      </g>
+
+      <!-- césped filiforme -->
+      <g stroke="url(#stemGrad)" stroke-linecap="round" stroke-width="4" opacity="0.95" class="glow-soft">
+        <path d="M12 780 C28 690 48 640 72 600" />
+        <path d="M348 780 C332 690 312 640 288 600" />
+        <path d="M40 780 C60 710 80 670 110 620" />
+        <path d="M320 780 C300 710 280 670 250 620" />
+      </g>
+
+      <!-- Flor extra izquierda (pequeña) -->
+      <g class="flower sway" data-delay="0.12">
+        <path d="M100 800 C98 720 98 690 100 660" stroke="url(#stemGrad)" stroke-width="8" stroke-linecap="round" fill="none" class="glow"/>
+        <path d="M100 720 C116 700 136 700 150 680 C136 688 116 688 100 710" fill="url(#leafGrad)" opacity="0.95" transform="translate(-10,0) rotate(-12 100 720)" class="glow-soft"/>
+        <ellipse cx="100" cy="640" rx="36" ry="20" fill="url(#petalGrad)" transform="rotate(-30 100 640)" class="glow"/>
+        <ellipse cx="100" cy="640" rx="36" ry="20" fill="url(#petalGrad)" transform="rotate(20 100 640)" class="glow"/>
+        <ellipse cx="100" cy="640" rx="36" ry="20" fill="url(#petalGrad)" transform="rotate(80 100 640)" class="glow"/>
+        <ellipse cx="100" cy="640" rx="36" ry="20" fill="url(#petalGrad)" transform="rotate(140 100 640)" class="glow"/>
+        <circle cx="100" cy="640" r="11" fill="url(#centerGrad)" class="glow-soft"/>
+      </g>
+
+      <!-- Flor izquierda (original) -->
+      <g class="flower sway" data-delay="0.20">
+        <path d="M120 800 C118 700 118 660 120 640" stroke="url(#stemGrad)" stroke-width="10" stroke-linecap="round" fill="none" class="glow" />
+        <path d="M120 700 C140 680 160 680 170 660 C156 668 136 668 120 690" fill="url(#leafGrad)" opacity="0.95" transform="rotate(-10 120 700)" class="glow-soft"/>
+        <path d="M120 740 C100 720 80 720 70 700 C84 712 104 712 120 730" fill="url(#leafGrad)" opacity="0.95" transform="rotate(-18 120 740)" class="glow-soft"/>
+        <ellipse cx="120" cy="630" rx="42" ry="24" fill="url(#petalGrad)" transform="rotate(-38 120 630)" class="glow"/>
+        <ellipse cx="120" cy="630" rx="42" ry="24" fill="url(#petalGrad)" transform="rotate(8 120 630)" class="glow"/>
+        <ellipse cx="120" cy="630" rx="42" ry="24" fill="url(#petalGrad)" transform="rotate(62 120 630)" class="glow"/>
+        <ellipse cx="120" cy="630" rx="42" ry="24" fill="url(#petalGrad)" transform="rotate(125 120 630)" class="glow"/>
+        <ellipse cx="120" cy="630" rx="42" ry="24" fill="url(#petalGrad)" transform="rotate(190 120 630)" class="glow"/>
+        <ellipse cx="120" cy="620" rx="26" ry="10" fill="#f6ffb0" opacity="0.95" class="glow-soft"/>
+        <circle cx="120" cy="630" r="12" fill="url(#centerGrad)" class="glow-soft"/>
+      </g>
+
+      <!-- Flor central (alta) -->
+      <g class="flower sway" data-delay="0.28">
+        <path d="M180 800 C178 700 178 650 180 600" stroke="url(#stemGrad)" stroke-width="10" stroke-linecap="round" fill="none" class="glow" />
+        <path d="M180 720 C200 700 230 700 240 680 C226 692 206 692 180 720" fill="url(#leafGrad)" transform="rotate(8 180 720)" class="glow-soft"/>
+        <path d="M180 760 C160 740 130 740 120 720 C134 734 154 734 180 758" fill="url(#leafGrad)" transform="rotate(-8 180 760)" class="glow-soft"/>
+        <ellipse cx="180" cy="600" rx="48" ry="28" fill="url(#petalGrad)" transform="rotate(-30 180 600)" class="glow"/>
+        <ellipse cx="180" cy="600" rx="48" ry="28" fill="url(#petalGrad)" transform="rotate(12 180 600)" class="glow"/>
+        <ellipse cx="180" cy="600" rx="48" ry="28" fill="url(#petalGrad)" transform="rotate(56 180 600)" class="glow"/>
+        <ellipse cx="180" cy="600" rx="48" ry="28" fill="url(#petalGrad)" transform="rotate(110 180 600)" class="glow"/>
+        <ellipse cx="180" cy="600" rx="48" ry="28" fill="url(#petalGrad)" transform="rotate(170 180 600)" class="glow"/>
+        <ellipse cx="180" cy="590" rx="30" ry="12" fill="#f6ffb0" opacity="0.95" class="glow-soft"/>
+        <circle cx="180" cy="600" r="14" fill="url(#centerGrad)" class="glow-soft"/>
+      </g>
+
+      <!-- Flor derecha (original) -->
+      <g class="flower sway" data-delay="0.36">
+        <path d="M240 800 C238 700 238 660 240 640" stroke="url(#stemGrad)" stroke-width="10" stroke-linecap="round" fill="none" class="glow" />
+        <path d="M240 700 C220 680 200 680 190 660 C206 668 226 668 240 690" fill="url(#leafGrad)" opacity="0.95" transform="rotate(10 240 700)" class="glow-soft"/>
+        <path d="M240 740 C260 720 280 720 290 700 C276 712 256 712 240 730" fill="url(#leafGrad)" opacity="0.95" transform="rotate(18 240 740)" class="glow-soft"/>
+        <ellipse cx="240" cy="630" rx="42" ry="24" fill="url(#petalGrad)" transform="rotate(-38 240 630)" class="glow"/>
+        <ellipse cx="240" cy="630" rx="42" ry="24" fill="url(#petalGrad)" transform="rotate(8 240 630)" class="glow"/>
+        <ellipse cx="240" cy="630" rx="42" ry="24" fill="url(#petalGrad)" transform="rotate(62 240 630)" class="glow"/>
+        <ellipse cx="240" cy="630" rx="42" ry="24" fill="url(#petalGrad)" transform="rotate(125 240 630)" class="glow"/>
+        <ellipse cx="240" cy="630" rx="42" ry="24" fill="url(#petalGrad)" transform="rotate(190 240 630)" class="glow"/>
+        <ellipse cx="240" cy="620" rx="26" ry="10" fill="#f6ffb0" opacity="0.95" class="glow-soft"/>
+        <circle cx="240" cy="630" r="12" fill="url(#centerGrad)" class="glow-soft"/>
+      </g>
+
+      <!-- Flor extra derecha (pequeña) -->
+      <g class="flower sway" data-delay="0.44">
+        <path d="M300 800 C298 720 298 690 300 660" stroke="url(#stemGrad)" stroke-width="8" stroke-linecap="round" fill="none" class="glow"/>
+        <path d="M300 720 C316 700 336 700 350 680 C336 688 316 688 300 710" fill="url(#leafGrad)" opacity="0.95" transform="rotate(12 300 720)" class="glow-soft"/>
+        <ellipse cx="300" cy="640" rx="36" ry="20" fill="url(#petalGrad)" transform="rotate(-20 300 640)" class="glow"/>
+        <ellipse cx="300" cy="640" rx="36" ry="20" fill="url(#petalGrad)" transform="rotate(30 300 640)" class="glow"/>
+        <ellipse cx="300" cy="640" rx="36" ry="20" fill="url(#petalGrad)" transform="rotate(90 300 640)" class="glow"/>
+        <ellipse cx="300" cy="640" rx="36" ry="20" fill="url(#petalGrad)" transform="rotate(150 300 640)" class="glow"/>
+        <circle cx="300" cy="640" r="11" fill="url(#centerGrad)" class="glow-soft"/>
+      </g>
+
+      <!-- sparks (decorativos, pero los de caída los crea JS en el overlay) -->
+      <g id="sparks">
+        <circle cx="40"  cy="540" r="6"  fill="url(#sparkGrad)" opacity="0.6"/>
+        <circle cx="310" cy="580" r="8"  fill="url(#sparkGrad)" opacity="0.6"/>
+        <circle cx="120" cy="480" r="5"  fill="url(#sparkGrad)" opacity="0.6"/>
+        <circle cx="350" cy="430" r="6"  fill="url(#sparkGrad)" opacity="0.6"/>
+        <circle cx="200" cy="520" r="5"  fill="url(#sparkGrad)" opacity="0.6"/>
+      </g>
+
+      <!-- motas -->
+      <g opacity="0.18" fill="#064b10">
+        <circle cx="80" cy="200" r="1.5"/>
+        <circle cx="140" cy="120" r="1.8"/>
+        <circle cx="220" cy="170" r="1.4"/>
+        <circle cx="260" cy="90"  r="1.6"/>
+        <circle cx="320" cy="240" r="1.2"/>
+      </g>
+    </svg>
+  </div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    // helpers
+    function escribirTexto(el, texto, velocidad=70) {
+      return new Promise(resolve => {
+        let i = 0;
+        el.textContent = "";
+        (function escribir(){
+          if (i < texto.length) {
+            el.textContent += texto.charAt(i++);
+            setTimeout(escribir, velocidad);
+          } else {
+            resolve();
+          }
+        })();
+      });
+    }
+
+    // refs
+    const titulo1 = document.getElementById('titulo1');
+    const titulo2 = document.getElementById('titulo2');
+    const titulo3 = document.getElementById('titulo3');
+    const subtitulo = document.getElementById('subtitulo');
+    const mensaje = document.getElementById('mensaje');
+    const boton = document.getElementById('boton');
+    const inicio = document.getElementById('inicio');
+    const flores = document.getElementById('flores');
+    const falling = document.getElementById('falling');
+    const fallingFloresContainer = document.getElementById('fallingFlores');
+
+    // animación de escritura secuencial y mostrar botón
+    (async function intro(){
+      await escribirTexto(titulo1, "FELIZ DÍA", 90);
+      await escribirTexto(titulo2, "DE LAS FLORES", 90);
+      await escribirTexto(titulo3, "AMARILLAS", 90);
+      await escribirTexto(subtitulo, "MI NIÑA 🤎", 90);
+      await escribirTexto(mensaje, "TENGO UN REGALO PARA TI", 70);
+      boton.classList.add('show');
+    })();
+
+    // crear destellos (inicio)
+    function crearDestellosInicio(cantidad=20){
+      if (!falling) return;
+      for (let i=0;i<cantidad;i++){
+        const d = document.createElement('div');
+        d.className = 'drop';
+        const size = 4 + Math.random()*12;
+        d.style.width = size + 'px';
+        d.style.height = size + 'px';
+        d.style.left = (Math.random()*100) + 'vw';
+        const dur = 3 + Math.random()*4;
+        const delay = Math.random()*2;
+        d.style.animationDuration = dur + 's';
+        d.style.animationDelay = delay + 's';
+        falling.appendChild(d);
+        // eliminar después de que termine la animación para no acumular
+        setTimeout(()=> {
+          if (d && d.parentNode) d.parentNode.removeChild(d);
+        }, (dur + delay)*1000 + 1200);
+      }
+    }
+    crearDestellosInicio(24);
+
+    // crear destellos sobre flores (overlay) en bucle pero se eliminan cuando terminan
+    function crearDestellosFlores(cantidad=30){
+      if (!fallingFloresContainer) return;
+      for (let i=0;i<cantidad;i++){
+        const d = document.createElement('div');
+        d.className = 'drop';
+        const size = 4 + Math.random()*12;
+        d.style.width = size + 'px';
+        d.style.height = size + 'px';
+        // distribuir sobre el ancho - un poco más centrado si quieres:
+        d.style.left = (Math.random()*100) + 'vw';
+        const dur = 3 + Math.random()*5;
+        const delay = Math.random()*2;
+        d.style.animationDuration = dur + 's';
+        d.style.animationDelay = delay + 's';
+        fallingFloresContainer.appendChild(d);
+        // eliminar cuando termine para no crecer indefinidamente
+        setTimeout(()=> {
+          if (d && d.parentNode) d.parentNode.removeChild(d);
+        }, (dur + delay)*1000 + 1200);
+      }
+    }
+
+    // al pulsar botón: ocultar inicio, mostrar flores y activar destellos en bucle
+    let floresInterval = null;
+    boton.addEventListener('click', (e) => {
+      e.preventDefault();
+      inicio.classList.add('fadeOut');
+      setTimeout(() => {
+        inicio.style.display = 'none';
+        flores.classList.add('active');
+        flores.setAttribute('aria-hidden','false');
+
+        // stagger: mostrar cada flor con su pequeño delay (data-delay)
+        const flowers = flores.querySelectorAll('svg .flower');
+        flowers.forEach((f, idx) => {
+          const base = parseFloat(f.getAttribute('data-delay')) || 0;
+          const delayMs = Math.round((base + idx*0.06) * 1000);
+          setTimeout(()=> f.classList.add('show'), delayMs);
+        });
+
+        // iniciar lluvia de destellos sobre las flores
+        crearDestellosFlores(60);
+        // y añadir más periódicamente para mantener sensación de lluvia
+        floresInterval = setInterval(()=> crearDestellosFlores(18), 3000);
+
+      }, 360);
+    });
+
+    // limpieza cuando se abandona la página
+    window.addEventListener('beforeunload', ()=>{
+      if (floresInterval) clearInterval(floresInterval);
+    });
+  });
+</script>
+</body>
+</html>
+
